@@ -13,12 +13,6 @@ const generateAccessToken = (id, roles) => {
 class authController {
     async registration(msg, ws) {
         try {
-/*            const error = validationResult(JSON.parse(msg));
-            if(!error.isEmpty()) {
-                ws.send(JSON.stringify({message: 'Registration error', type: 'error'}));
-                return;
-            }*/
-
             const {username, password} = msg.body;
             const person = await User.findOne({username});
             if(person) {
@@ -57,7 +51,6 @@ class authController {
             const token = generateAccessToken(user._id, user.roles);
 
             ws.send(JSON.stringify({message: `Welcome, ${username}!`, response: 'login'}));
-            //return res.cookie("token", token, { httpOnly: true }).json({ token: true});
         }
         catch (e) {
             console.log(e);
@@ -65,19 +58,19 @@ class authController {
         }
     }
 
-    async getCookie(req, res) {
+    async getCookie(msg, ws) {
         try {
             const token = req.cookies.token;
 
             if(token) {
-                return res.json({ token: true});
+                ws.send(JSON.stringify({response: 'token', value: token }));
             }
 
-            return res.json({ token: false});
+            ws.send(JSON.stringify({response: 'token', value: 'null' }));
         }
         catch (e) {
             console.log(e);
-            res.status(400).json({message: `Couldn't get cookie`});
+            ws.send(JSON.stringify({message: `Couldn't get cookie`}));
         }
     }
 

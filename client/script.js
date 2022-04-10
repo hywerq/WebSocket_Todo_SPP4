@@ -1,7 +1,11 @@
-const socket = new WebSocket('ws://localhost:5000/')
+let socket = new WebSocket('ws://localhost:5000/')
 
 socket.onopen = () => {
-    console.log('connected');
+    socket.send(JSON.stringify({
+        id: Math.random(),
+        username: username,
+        method: 'connection'
+    }));
 }
 
 socket.onmessage = (event) => {
@@ -16,11 +20,17 @@ socket.onmessage = (event) => {
         }
     }
 
+    removePreloader();
+
     if(data.response) {
         switch (data.response) {
             case 'login':
+                username = form.elements['username'].value;
                 renderNavigation();
                 loadTodos();
+                break;
+            case 'todos':
+                renderTodos(JSON.parse(data.todos).todo);
                 break;
         }
     }
@@ -62,13 +72,14 @@ function customHttp() {
                 body: JSON.stringify({
                     id: id
                 }),
-                method: 'add-todo'
+                method: 'change-todo'
             }));
         },
     };
 }
 
 const http = customHttp();
+let username = '';
 
 const entranceService = (function() {
     return {
@@ -152,13 +163,13 @@ function loadTodos() {
 function addTodo() {
     showPreloader();
 
-    todoService.insertTodo(onGetResponse).catch(error => showAlert(error));
+    todoService.insertTodo().catch(error => showAlert(error));
 }
 
 function changeTodoStatus(id) {
     showPreloader();
 
-    todoService.editTodo(id, onGetResponse).catch(error => showAlert(error));
+    todoService.editTodo(id).catch(error => showAlert(error));
 }
 
 function makeDate(date) {
@@ -429,39 +440,36 @@ function initForm() {
 
 document.body.addEventListener( 'click', e => {
     switch (e.target.id) {
-        case 'id_save_state_btn':
-            e.preventDefault();
-            socket.send(JSON.stringify({
-                username: form.elements['username'].value,
-                method: 'change'
-            }));
-            break;
         case 'id_login':
             e.preventDefault();
-            entranceService.login();
+            entranceService.login().catch(error => showAlert(error));
             break;
+
         case 'id_register':
             e.preventDefault();
-            socket.send(JSON.stringify({
-                username: form.elements['username'].value,
-                method: 'register'
-            }));
+            entranceService.register().catch(error => showAlert(error));
             break;
+
+        case 'id_save_state_btn':
+            e.preventDefault();
+            const id = e.path[3].id.defaultValue;
+            changeTodoStatus(id);
+            break;
+
         case 'input':
             e.preventDefault();
-
             renderInputForm();
             break;
+
         case 'output':
             e.preventDefault();
-
             const inputForm = document.querySelector(".new-todo");
             if (inputForm) {
                 inputForm.remove();
             }
-
             loadTodos();
             break;
+
         case 'log_out':
             e.preventDefault();
             if (confirm("Do you want to log out?")) {

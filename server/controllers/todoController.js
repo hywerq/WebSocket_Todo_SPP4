@@ -1,22 +1,24 @@
 const fs = require('fs');
 const path = require('path');
-const filePath = 'models/todo.json';
+const filePath = '../server/data/todo.json';
 
 class todoController{
-    async getAllTodos(req, res) {
+    async getAllTodos(msg, ws) {
         try {
             const content = fs.readFileSync(filePath,{encoding: 'utf-8', flag: 'r'});
-            res.send(JSON.parse(content));
+            ws.send(JSON.stringify({response: 'todos', todos: content}));
         }
         catch (e) {
             console.log(e);
-            res.send(400).json({message: `Couldn't read database`});
+            ws.send(JSON.stringify({message: `Couldn't read file`, type: 'error'}));
         }
     }
 
-    async addNewTodo(req, res) {
-        if(!req.body) {
-            return res.sendStatus(400);
+    async addNewTodo(msg, ws) {
+        const req = JSON.parse(msg.body);
+
+        if(!req) {
+            ws.send(JSON.stringify({message: 'Error', type: 'error'}));
         }
 
         let fileFlag = false;
@@ -27,8 +29,8 @@ class todoController{
             file = path.join('./uploads/' + req.file.filename);
         }
 
-        const todoTitle = req.body.title;
-        const todoDate = req.body.date;
+        const todoTitle = req.title;
+        const todoDate = req.date;
 
         const data = fs.readFileSync(filePath,{encoding: 'utf-8', flag: 'r'});
         const todos = JSON.parse(data);
@@ -48,15 +50,16 @@ class todoController{
         const newData = JSON.stringify(todos);
         fs.writeFileSync(filePath, newData);
 
-        res.send(todo);
+        ws.send(JSON.stringify({message: 'Successfully added!'}));
     }
 
-    async changeTodoStatus(req, res) {
-        if(!req.body) {
-            return res.sendStatus(400);
+    async changeTodoStatus(msg, ws) {
+        const req = JSON.parse(msg.body);
+        if(!req) {
+            ws.send(JSON.stringify({message: 'Error', type: 'error'}));
         }
 
-        const id = req.body.id;
+        const id = req.id;
         const data = fs.readFileSync(filePath,{encoding: 'utf-8', flag: 'r'});
         const todos = JSON.parse(data);
 
@@ -69,7 +72,7 @@ class todoController{
         const newData = JSON.stringify(todos);
         fs.writeFileSync(filePath, newData);
 
-        res.send(todos);
+        ws.send(JSON.stringify({response: 'todos', todos: newData }));
     }
 }
 
