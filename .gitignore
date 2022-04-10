@@ -1,0 +1,4 @@
+# Project exclude paths
+/server/node_modules/
+/server/config.js
+/server/data/
