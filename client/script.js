@@ -1,11 +1,7 @@
 let socket = new WebSocket('ws://localhost:5000/')
 
 socket.onopen = () => {
-    socket.send(JSON.stringify({
-        id: Math.random(),
-        username: username,
-        method: 'connection'
-    }));
+    id = Math.random();
 }
 
 socket.onmessage = (event) => {
@@ -26,11 +22,24 @@ socket.onmessage = (event) => {
         switch (data.response) {
             case 'login':
                 username = form.elements['username'].value;
+                token = data.token;
+
+                entranceService.alertUsers(`User ${username} connected`).catch(err => console.log(err));
+
                 renderNavigation();
                 loadTodos();
                 break;
+
             case 'todos':
                 renderTodos(JSON.parse(data.todos).todo);
+                break;
+
+            case 'token':
+                console.log(data)
+                if(data.value === null) {
+                    entranceService.alertUsers(`User ${username} disconnected`).catch(err => console.log(err));
+                    renderEntranceForm();
+                }
                 break;
         }
     }
@@ -49,6 +58,8 @@ function customHttp() {
         },
         async getCookie(method) {
             socket.send(JSON.stringify({
+                id: id,
+                username: username,
                 method: method
             }));
         },
@@ -64,6 +75,7 @@ function customHttp() {
                     date: makeDate(todoDateInput.value),
                     file: todoFileInput.files[0]
                 }),
+                token: token,
                 method: 'add-todo'
             }));
         },
@@ -75,11 +87,21 @@ function customHttp() {
                 method: 'change-todo'
             }));
         },
+        async alert(msg) {
+            socket.send(JSON.stringify({
+                id: id,
+                username: username,
+                method: 'alert',
+                message : msg
+            }));
+        }
     };
 }
 
 const http = customHttp();
 let username = '';
+let id = '';
+let token = '';
 
 const entranceService = (function() {
     return {
@@ -94,9 +116,13 @@ const entranceService = (function() {
         },
         async logOut() {
             await http.getCookie('logout');
+        },
+        async alertUsers(msg) {
+            await http.alert(msg)
         }
     };
 })();
+
 const todoService = (function() {
     return {
         async allTodos() {
@@ -115,44 +141,6 @@ let form = document.forms['entrance_form'];
 let todoTitleInput = form.elements['title'];
 let todoFileInput = form.elements['file'];
 let todoDateInput = form.elements['date'];
-
-function onGetResponse(err, res) {
-    removePreloader();
-
-    if (err) {
-        showAlert(err.message, 'error-msg');
-        return;
-    }
-
-    if(res.message)
-    {
-        showAlert(res.message);
-    }
-
-    if(res.token === true) {
-        renderNavigation();
-        loadTodos();
-        return;
-    }
-    else if(res.token === false) {
-        renderEntranceForm();
-        return;
-    }
-
-    if(res.todo) {
-        loadTodos();
-        return;
-    }
-
-    if (Array.isArray(res)) {
-        if(!res.length) {
-            showAlert('There are no todos yet!');
-        }
-        else {
-            renderTodos(res);
-        }
-    }
-}
 
 function loadTodos() {
     showPreloader();
@@ -473,10 +461,7 @@ document.body.addEventListener( 'click', e => {
         case 'log_out':
             e.preventDefault();
             if (confirm("Do you want to log out?")) {
-                socket.send(JSON.stringify({
-                    username: form.elements['username'].value,
-                    method: 'logout'
-                }));
+                entranceService.logOut().catch(error => showAlert(error));
             }
             break;
     }

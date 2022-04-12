@@ -1,6 +1,18 @@
 const fs = require('fs');
 const path = require('path');
+const multer = require('multer');
 const filePath = '../server/data/todo.json';
+
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'uploads');
+    },
+    filename: function (req, file, cb) {
+        cb(null, new Date().toISOString().replace(/:/g, '-') + '_' + file.originalname);
+    }
+});
+
+const upload = multer({storage: storage});
 
 class todoController{
     async getAllTodos(msg, ws) {
@@ -19,6 +31,7 @@ class todoController{
 
         if(!req) {
             ws.send(JSON.stringify({message: 'Error', type: 'error'}));
+            return;
         }
 
         let fileFlag = false;

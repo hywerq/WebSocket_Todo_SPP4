@@ -50,37 +50,37 @@ class authController {
 
             const token = generateAccessToken(user._id, user.roles);
 
-            ws.send(JSON.stringify({message: `Welcome, ${username}!`, response: 'login'}));
+            ws.send(JSON.stringify({message: `Welcome, ${username}!`, response: 'login', token: token}));
         }
         catch (e) {
             console.log(e);
-            ws.send(JSON.stringify({message: 'Login error', type: 'failure'}));
+            ws.send(JSON.stringify({message: 'Login error', type: 'error'}));
         }
     }
 
     async getCookie(msg, ws) {
         try {
-            const token = req.cookies.token;
+            const token = JSON.parse(msg.body).token;
 
             if(token) {
                 ws.send(JSON.stringify({response: 'token', value: token }));
             }
 
-            ws.send(JSON.stringify({response: 'token', value: 'null' }));
+            ws.send(JSON.stringify({response: 'token', value: null }));
         }
         catch (e) {
             console.log(e);
-            ws.send(JSON.stringify({message: `Couldn't get cookie`}));
+            ws.send(JSON.stringify({message: `Couldn't get cookie`, type: 'error'}));
         }
     }
 
-    async removeCookie(req, res) {
+    async removeCookie(msg, ws) {
         try {
-            return res.clearCookie("token").json({ token: false});
+            ws.send(JSON.stringify({response: 'token', value: null }));
         }
         catch (e) {
             console.log(e);
-            res.status(400).json({message: 'Bad request'});
+            ws.send(JSON.stringify({message: `Couldn't get cookie`, type: 'error'}));
         }
     }
 }
