@@ -45,6 +45,14 @@ socket.onmessage = (event) => {
     }
 }
 
+function stringify(obj) {
+    const replacer = [];
+    for (const key in obj) {
+        replacer.push(key);
+    }
+    return JSON.stringify(obj, replacer);
+}
+
 function customHttp() {
     return {
         async postAuth(method) {
@@ -69,11 +77,12 @@ function customHttp() {
             }));
         },
         async post() {
+            const json = stringify(todoFileInput.files[0]);
             socket.send(JSON.stringify({
                 body: JSON.stringify({
                     title: todoTitleInput.value,
                     date: makeDate(todoDateInput.value),
-                    file: todoFileInput.files[0]
+                    file: json
                 }),
                 token: token,
                 method: 'add-todo'
